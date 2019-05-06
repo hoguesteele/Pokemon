@@ -73,18 +73,23 @@ def load_music(bg):
     chdir('maps')
     chdir(bg)
     with open('music.txt','r') as file:
-        song = file.read()
+        dat = file.read()
     chdir(main_dir)
+    song = ''
+    if dat != '.': song = dat
     return song
 
 def load_bgs(bg):
     chdir('maps')
     chdir(bg)
     with open('bgs.txt','r') as file:
-        data = [[j.strip() for j in i.split(',')]
-                for i in file.read().splitlines() if i]
+        dat = file.read().splitlines()
     chdir(main_dir)
     bgs = [{'bg':bg,'x_off':0,'y_off':0,'hide':False}]
+    
+    if dat[0] == '.': return bgs
+    data = [[j.strip() for j in i.split(',')] for i in dat if i]
+    
     for line in data:
         extra_bg = {}
         for string in line:
@@ -98,10 +103,13 @@ def load_signs(bg):
     chdir('maps')
     chdir(bg)
     with open('signs.txt','r') as file:
-        data = [[j.strip() for j in i.split(',')]
-                for i in file.read().splitlines() if i]
+        dat = file.read().splitlines()
     chdir(main_dir)
     signs = []
+    
+    if dat[0] == '.': return signs
+    data = [[j.strip() for j in i.split(',')] for i in dat if i]
+    
     for line in data:
         sign = {}
         for string in line:
@@ -115,10 +123,13 @@ def load_doors(bg):
     chdir('maps')
     chdir(bg)
     with open('doors.txt','r') as file:
-        data = [[j.strip() for j in i.split(',')]
-                for i in file.read().splitlines() if i]
+        dat = file.read().splitlines()
     chdir(main_dir)
     doors = {}
+    
+    if dat[0] == '.': return doors
+    data = [[j.strip() for j in i.split(',')] for i in dat if i]
+    
     for line in data:
         door = {}
         for string in line:
@@ -134,10 +145,13 @@ def load_tiles(bg):
     chdir('maps')
     chdir(bg)
     with open('tiles.txt','r') as file:
-        data = [[j.strip() for j in i.split(',')]
-                for i in file.read().splitlines() if i]
+        dat = file.read().splitlines()
     chdir(main_dir)
     tiles = {}
+    
+    if dat[0] == '.': return tiles
+    data = [[j.strip() for j in i.split(',')] for i in dat if i]
+    
     for line in data:
         x, y, tile = [get_bool(get_text(get_int(string.split(':')[-1].strip())))
                       for string in line]
@@ -158,6 +172,7 @@ def load_npcs(bg):
     chdir(main_dir)
     
     for dat in npc_data:
+        if dat[0] == '.': continue
         npc = {'move':[]}
         for line in dat:
             item_type, values = [string.strip() for string in line.split('=')]
@@ -619,9 +634,9 @@ class App:
 def run(App, queue=None):
     window = App(queue)
     
-    from time import clock, time
-    start_time = clock()
-    frames = 0
+##    from time import clock, time
+##    start_time = clock()
+##    frames = 0
     
     
     def update_():
@@ -644,12 +659,12 @@ def run(App, queue=None):
                 print('run(App) loop closed with unhandled exception:\n\t',e)
                 break
         
-        frames += 1
-        if frames % 45 == 0:
-            fps = frames / (clock()-start_time)
-            print(f"{fps:>4.2f} fps")
-            start_time = clock()
-            frames = 0
+##        frames += 1
+##        if frames % 45 == 0:
+##            fps = frames / (clock()-start_time)
+##            print(f"{fps:>4.2f} fps")
+##            start_time = clock()
+##            frames = 0
 
 ####################################################################
 ####################################################################

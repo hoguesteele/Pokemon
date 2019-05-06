@@ -176,7 +176,7 @@ from time import ctime
 
 
 
-music_folder = r'C:\Users\Hogue\Desktop\Code Challenges\Pokemon V5\MUSIC\WAV'
+music_folder = r'C:\Users\Hogue\Desktop\Code Challenges\Pokemon\MUSIC\WAV'
 chdir(music_folder)
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 ''' Doc_String '''
 
-music_folder = r'C:\Users\Hogue\Desktop\Code Challenges\Pokemon V5\MUSIC\WAV'
+music_folder = r'C:\Users\Hogue\Desktop\Code Challenges\Pokemon\MUSIC\WAV'
 
 
 from my_headers import ii

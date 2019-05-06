@@ -1,0 +1,1 @@
+pos=x:  5,   y:  3,   facing:  0,   frozen: False,   type: fatman

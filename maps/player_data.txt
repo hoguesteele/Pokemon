@@ -1,0 +1,4 @@
+bg=newbark
+x=7
+y=11
+facing=0

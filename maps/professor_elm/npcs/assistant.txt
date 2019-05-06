@@ -1,0 +1,8 @@
+pos=x:  2,   y:  9,   facing:  3,   frozen: False,   type: assistant
+
+move=x:  2, y:  9
+move=x:  3, y:  9
+move=x:  1, y:  9
+move=x:  2, y:  8
+
+interact=talk:'Im Professor Elm's Aid!'

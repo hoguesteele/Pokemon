@@ -1,0 +1,3 @@
+pos=x:  7,   y:  3,   facing:  1,   frozen:  True,   type: mom
+
+interact=talk:'Hi Sweetie!NEWLINE  I think Professor Elm wanted to see you next door.'

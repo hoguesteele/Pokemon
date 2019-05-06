@@ -1,0 +1,7 @@
+x:10, y:10, text:Some unhelpful gibberish about holding the spacebar to run...
+
+x:13, y:7,  text:...   Stella's WhorehouseNEWLINENEWLINE *sigh*..."home sweet home"
+
+x:5,  y:5,  text:...   "The prick above me looks like he's gonna steal something"COMMANEWLINEthe sign mumbles to itself.
+
+x:11, y:15, text:...   "GEORGE BUSH DID 9/11!!"NEWLINEis spraypainted over whatever was here previously

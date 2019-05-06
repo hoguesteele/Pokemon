@@ -1,0 +1,9 @@
+pos=x: 13,   y: 11,   facing:  2,   frozen: False,   type: fatman
+
+move=x: 13, y: 11
+move=x: 15, y: 10
+move=x: 14, y: 10
+move=x: 15, y: 11
+move=x: 14, y: 11
+
+interact=talk:'Man this summer is killing meCOMMA it's like my dick is in a sauna...NEWLINE Oh hey kiddo didnt see you there! hahaha'

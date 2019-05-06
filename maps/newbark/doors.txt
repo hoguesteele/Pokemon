@@ -1,0 +1,11 @@
+from_x:  8,   from_y:  5,   x:  4,   y: 11,   facing:  2,   washout:  True,   bg: professor_elm
+
+from_x: 15,   from_y:  7,   x:  7,   y:  7,   facing:  2,   washout:  True,   bg: home
+
+from_x:  5,   from_y: 13,   x:  3,   y:  7,   facing:  2,   washout:  True,   bg: house1
+
+from_x: 13,   from_y: 15,   x:  3,   y:  7,   facing:  2,   washout:  True,   bg: house2
+
+from_x: -1,   from_y: 10,   x: 59,   y:  8,   facing:  1,   washout: False,   bg: route_29
+
+from_x: -1,   from_y: 11,   x: 59,   y:  9,   facing:  1,   washout: False,   bg: route_29

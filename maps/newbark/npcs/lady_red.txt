@@ -1,0 +1,8 @@
+pos=x:  8,   y: 10,   facing:  3,   frozen: False,   type: lady_red
+
+move=x:  8, y: 10
+move=x:  7, y: 10
+move=x:  8, y:  9
+move=x:  9, y: 10
+
+interact=talk:'My name is Emilia! I love Pokemon!'

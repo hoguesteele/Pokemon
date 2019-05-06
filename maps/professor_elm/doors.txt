@@ -1,0 +1,3 @@
+from_x:  4,   from_y: 12,   x:  8,   y:  6,   facing:  0,   washout:  True,   bg: newbark
+
+from_x:  5,   from_y: 12,   x:  8,   y:  6,   facing:  0,   washout:  True,   bg: newbark

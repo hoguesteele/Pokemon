@@ -1,0 +1,5 @@
+from_x:  6,   from_y:  8,   x: 15,   y:  8,   facing:  0,   washout:  True,   bg: newbark
+
+from_x:  7,   from_y:  8,   x: 15,   y:  8,   facing:  0,   washout:  True,   bg: newbark
+
+from_x:  9,   from_y:  0,   x:  7,   y:  1,   facing:  0,   washout:  True,   bg: my_room

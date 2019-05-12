@@ -65,6 +65,14 @@ def get_text(value):
     value = value.replace('COMMA',',')
     return value
 
+def dir_to_turn(direction):
+    x,y = 0,0
+    if   direction == 'down': y =  1
+    elif direction == 'left': x = -1
+    elif direction == 'up': y = -1
+    elif direction == 'right': x =  1
+    return x,y
+
 ####################################################################
 ####################################################################
 
@@ -81,8 +89,12 @@ def load_music(bg):
 def load_scripts(bg):
     chdir('maps')
     chdir(bg)
-    with open('script.txt','r') as file:
-        dat = file.read().splitlines()
+    try:
+        with open('script.txt','r') as file:
+            dat = file.read().splitlines()
+    except:
+        chdir(main_dir)
+        return []
     chdir(main_dir)
     scripts = []
     
@@ -106,7 +118,7 @@ def load_bgs(bg):
     with open('bgs.txt','r') as file:
         dat = file.read().splitlines()
     chdir(main_dir)
-    bgs = [{'bg':bg,'x_off':0,'y_off':0,'hide':False}]
+    bgs = [{'name':bg,'x_off':0,'y_off':0,'hide':False}]
     
     if dat[0] == '.': return bgs
     data = [[j.strip() for j in i.split(',')] for i in dat if i]
@@ -285,12 +297,17 @@ class App:
         self.freeze_frames  = 0
         self.awaiting_input = False
         self.frozen         = False
-        
         self.scripted_scene = {'first_step':False}
         
         self.load_save()
-##        self.ani_engine.toggle_debug()
-##        self._debug_()
+        
+        
+        self.do_debug = False
+##        self.do_debug = True
+        
+        if self.do_debug: self.ani_engine.toggle_debug()
+        
+        
 ##        self.ani_engine.root.destroy()
     
     
@@ -300,34 +317,30 @@ class App:
     
     def run_script(self, script):
         frozen = script.get('frozen',[])
+        talk   = script.get('talk',False)
+        sequence = script.get('sequence',[])
+        print(sequence)
+        sequence.reverse()
+        
         if 'player' in frozen: self.frozen = True
         for npc in self.npcs:
             if npc.name in frozen: npc.frozen = True
         
-        mom = [npc for npc in self.npcs if npc.name == 'mom'][0]
         
-        actions = []
-        actions.extend([('notice',7,2)])
-        actions.extend([('wait',) for i in range(16)])
-        actions.extend([('turn',1,0)])
-        actions.extend([('move',1,0) for i in range(16)])
-        actions.extend([('turn',0,-1)])
-        actions.extend([('move',0,-1) for i in range(8)])
-        actions.extend([('wait',) for i in range(24)])
-        actions.reverse()
+        for item in [i.split('.') for i in sequence]:
+            name = item[0]
+            actions = item[1:]
+            if not actions[-1].isnumeric():
+                if actions[0] == 'talk': actions.append(talk)
+                if actions[0] == 'unfreeze': actions.append(frozen)
+                actions = [tuple(actions)]
+            else:  actions = [tuple(actions[:-1]) for i in range(int(actions[-1])*8)]
+            
+            if name != 'player':
+                npc = [npc_ for npc_ in self.npcs if npc_.name == name][0]
+                npc.actions.extend(actions)
+            else: self.actions.extend(actions)
         
-        mom.actions = actions
-        
-        for k,v in script.items():
-            if k in ['frozen','name']: continue
-            print(f"{k}:  {v}")
-        print()
-        
-        
-        if 'player' in frozen: self.frozen = False
-        for npc in self.npcs:
-            if npc.name in frozen: npc.frozen = False
-    
     
     #######################################################
     ###################  INTERACTIONS  ####################
@@ -419,8 +432,10 @@ class App:
         self.create_npcs( npcs )
         for (x,y),door in self.doors.items(): self.valid_spaces.append((x,y))
         for script in scripts:
-            if self.scripted_scene[script['name']] == False:
+            completed_script = self.scripted_scene.get(script['name'],False)
+            if not completed_script:
                 self.run_script(script)
+                self.scripted_scene[script['name']] = True
     
     
     #######################################################
@@ -468,11 +483,11 @@ class App:
         def print_(msg,tag='',end='\n'): self.ani_engine.print_debug(msg + end,tag)
         self.ani_engine.clear_debug_text()
         
-##        self.show_npc_status(print_)
+        self.show_npc_status(print_)
         
     def show_npc_status(self, print_):
         print_(f"freeze frozen battle name")
-        print_(f"{self.freeze:^6}    {'0':^6}    {'0':^6}    player")
+        print_(f"{self.freeze:^6}    {self.frozen:^6}    {'0':^6}    player")
         for npc in self.npcs:
             print_("{:^6}    {:^6}    {:^6}    {}".format(
                 npc.freeze, npc.frozen, npc.can_battle, npc.name,
@@ -524,7 +539,7 @@ class App:
         if self.freeze_frames:
             self.freeze_frames -= 1
             if not self.freeze_frames: self.un_freeze('')
-##        self._debug_()
+        if self.do_debug: self._debug_()
     
     def load_music(self, song):
         if self.queue:
@@ -591,18 +606,30 @@ class App:
         action_type, args = action[0], action[1:]
         
         if action_type == 'turn':
-            self.player.facing  = player_turn(*args)
+            if len(args) == 1: x,y = dir_to_turn(args[0])
+            else: x,y = args
+            self.player.facing  = player_turn(x,y)
             self.player.turning = 3
         elif action_type == 'quick_turn':
             self.player.facing = player_turn(*args)
         elif action_type == 'move':
-            self.subpos = ((args[0]*2) + self.subpos[0], (args[1]*2) + self.subpos[1])
+            if len(args) == 1: x,y = dir_to_turn(args[0])
+            else: x,y = args
+            if type(self.player.moving) == bool: self.player.moving = x,y
+            self.subpos = ((x*2) + self.subpos[0], (y*2) + self.subpos[1])
         elif action_type == 'run':
             self.subpos = ((args[0]*4) + self.subpos[0], (args[1]*4) + self.subpos[1])
         elif action_type == 'swim':
             self.subpos = (args[0] + self.subpos[0], args[1] + self.subpos[1])
         elif action_type == 'start_surf':
             self.subpos = (args[0] + self.subpos[0], args[1] + self.subpos[1])
+            
+        if action[0] == 'unfreeze':
+            frozen = args[0]
+            if 'player' in frozen: self.frozen = False
+            for npc in self.npcs:
+                if npc.name in frozen: npc.frozen = False
+        
         else: pass
         if len(self.actions) == 0:
             self.done_moving()

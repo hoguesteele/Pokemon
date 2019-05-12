@@ -1,0 +1,1 @@
+name:get_pokemon,talk:'Hey Champ!NEWLINE  It's time to pick your first pokemon.',frozen:player,sequence:player.move.up.9;player.turn.right;elm.talk;player.unfreeze

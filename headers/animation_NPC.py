@@ -23,6 +23,13 @@ def get_random_move():
     elif f == 3: x =  1
     return x,y
 
+def dir_to_turn(direction):
+    x,y = 0,0
+    if   direction == 'down': y =  1
+    elif direction == 'left': x = -1
+    elif direction == 'up': y = -1
+    elif direction == 'right': x =  1
+    return x,y
 ####################################################################
 ####################################################################
 
@@ -163,11 +170,62 @@ class NPC_Animation():
         player = self.main_app.calc_position()
         return player in get_tiles_in_view(x,y,self.facing)
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
     def done_moving(self):
         self.frame = 0
         self.moving = False
         self.move_arm()
         if not self.check_battle(): self.un_freeze()
+
+    def do_action(self):
+        if not self.actions: return 0
+        self.do_freeze()
+        action = self.actions.pop()
+        action_type, args = action[0], action[1:]
+        
+        if action_type == 'turn':
+            if len(args) == 1:
+                x,y = dir_to_turn(args[0])
+            else: x,y = args
+            self.turn(x,y)
+            
+        elif action_type == 'move':
+            if len(args) == 1:
+                x,y = dir_to_turn(args[0])
+            else: x,y = args
+            self.frame += 1
+            self.sx += x*2
+            self.sy += y*2
+            
+        elif action_type == 'notice':
+            x,y = self.calc_position()
+            self.main_app.ani_engine.draw_pop_up(x,y-1,action_type)
+            
+        elif action_type == 'delete_notice':
+            self.main_app.ani_engine.delete_pop_up()
+            
+        if action[0] == 'unfreeze':
+            frozen = args[0]
+            if 'player' in frozen: self.main_app.frozen = False
+            for npc in self.main_app.npcs:
+                if npc.name in frozen: npc.frozen = False
+            
+        if action[0] == 'talk':
+            talk = args[0]
+            print(talk)
+            
+        if action[0] == 'wait':
+            pass
+        
+        if len(self.actions) == 0: self.done_moving()
     
     
     
@@ -244,28 +302,6 @@ class NPC_Animation():
         if self.can_move(x,y):
             self.moving = x,y
             self.actions = [('move',x,y) for i in range(8)]
-
-    def do_action(self):
-        if not self.actions: return 0
-        self.do_freeze()
-        action = self.actions.pop()
-        action_type, args = action[0], action[1:]
-        
-        if action_type == 'turn':
-            self.turn(*args)
-            
-        elif action_type == 'move':
-            self.frame += 1
-            self.sx += args[0]*2
-            self.sy += args[1]*2
-            
-        elif action_type == 'notice':
-            self.main_app.ani_engine.draw_pop_up(args[0],args[1],action_type)
-            
-        if action[0] == 'wait':
-            return 0
-        
-        if len(self.actions) == 0: self.done_moving()
     
     def can_move(self, x, y):
         attempt = move_sprite_dict[self.facing]

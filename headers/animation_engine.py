@@ -75,8 +75,8 @@ class TK_Base:
 ####################################################################
 
 class BG_Class:
-    def __init__(self, bg, x, y, c_obj):
-        self.bg         = bg
+    def __init__(self, name, x, y, c_obj):
+        self.name       = name
         self.sx         = x*16
         self.sy         = y*16
         self.c_obj      = c_obj
@@ -85,22 +85,22 @@ class BG_Class:
         self.sx         = x*16
         self.sy         = y*16
     def __str__(self):
-        return self.bg
+        return self.name
 
 ####################################################################
 ####################################################################
 
 class Animated_Tile:
-    def __init__(self,x,y,tile,lift=False):
+    def __init__(self,x,y,name,lift=False):
         self.sx         = x*16
         self.sy         = y*16
-        self.tile       = tile
+        self.name       = name
         self.lift       = lift
         self.state      = 0
         self.image_hold = None
         self.c_obj      = None
     def __str__(self):
-        return self.tile
+        return self.name
 
 ####################################################################
 ####################################################################
@@ -108,7 +108,7 @@ class Animated_Tile:
 class pop_up:
     def __init__(self,x,y,name):
         self.sx         = x*16
-        self.sy         = y*16
+        self.sy         = y*16 - 4
         self.name       = name
         self.image_hold = None
         self.c_obj      = None
@@ -243,7 +243,7 @@ class Animation_Engine( TK_Base ):
     def create_bgs(self, bgs):
         loading = []
         for index, bg_data in enumerate(bgs):
-            name, x_off, y_off = bg_data['bg'], bg_data['x_off'], bg_data['y_off']
+            name, x_off, y_off = bg_data['name'], bg_data['x_off'], bg_data['y_off']
             hide = bg_data.get('hide',False)
             if name in [str(b) for b in self.bgs]:
                 bg = self.bgs[[str(b) for b in self.bgs].index(name)]
@@ -299,18 +299,27 @@ class Animation_Engine( TK_Base ):
         pic             = pic.resize( (CW,CH) )
         pop.image_hold  = ImageTk.PhotoImage(pic)
         x,y             = self.get_sprite_pos( pop )
-        y -= 6
         pop.c_obj       = self.c.create_image(x,y,image=pop.image_hold,
                                               anchor=NW,tags='pop_up')
         chdir(main_dir)
         self.screen_objects.append(pop)
         self.c.lift(pop.c_obj)
     
+    def delete_pop_up(self):
+        to_del = None
+        for obj in self.screen_objects:
+            if hasattr(obj,'name'):
+                if obj.name == 'notice':
+                    to_del = obj
+        if to_del:
+            self.c.delete(to_del.c_obj)
+            self.screen_objects.remove(to_del)
+    
     def draw_animated_tiles(self):
         for tile in self.animated_tiles:
             chdir('image_assets')
             chdir('animated_tiles')
-            img             = '{}.png'.format(tile.tile)
+            img             = '{}.png'.format(tile.name)
             pic             = Image.open(img)
             cw,ch           = pic.size
             CW,CH           = cw*scale,ch*scale

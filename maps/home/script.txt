@@ -1,1 +1,1 @@
-name:first_step,talk:'Hi Sweetie!NEWLINE  I think Professor Elm wanted to see you next door.',frozen:player;mom
+name:first_step,talk:'Hi Sweetie!NEWLINE  I think Professor Elm wanted to see you next door.',frozen:player;mom,sequence:mom.turn.right;mom.notice;mom.wait.2;mom.delete_notice;mom.move.right.2;mom.turn.up;mom.move.up.1;mom.talk;mom.wait.2;mom.turn.down;mom.move.down.1;mom.turn.left;mom.move.left.2;mom.unfreeze

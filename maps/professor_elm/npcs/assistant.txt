@@ -1,4 +1,4 @@
-pos=x:  2,   y:  9,   facing:  3,   frozen: False,   type: assistant
+pos=x:  2,   y:  9,   facing:  3,   frozen: True,   type: assistant
 
 move=x:  2, y:  9
 move=x:  3, y:  9

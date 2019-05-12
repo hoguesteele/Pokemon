@@ -36,13 +36,12 @@ This process should not completely replace the movement tiles,
 ####################################################################
 
 def get_valid_spaces( movables ):
-    path_tiles   = [None,'cement','flower_1','flower_2','door','grass',
+    path_tiles   = ['empty','cement','flower_1','flower_2','door','grass',
                     'water','water_0','water_1','water_2','tall_grass']
     valid_spaces = []
     for (x,y),tile in movables.items():
-        if tile == None:            valid_spaces.append((x,y))
-        elif tile in path_tiles:    valid_spaces.append((x,y))
-        elif 'ledge' in tile:       valid_spaces.append((x,y))
+        if tile in path_tiles:  valid_spaces.append((x,y))
+        elif 'ledge' in tile:   valid_spaces.append((x,y))
     return valid_spaces
 
 def get_int(value):
@@ -78,6 +77,28 @@ def load_music(bg):
     song = ''
     if dat != '.': song = dat
     return song
+
+def load_scripts(bg):
+    chdir('maps')
+    chdir(bg)
+    with open('script.txt','r') as file:
+        dat = file.read().splitlines()
+    chdir(main_dir)
+    scripts = []
+    
+    if dat[0] == '.': return scripts
+    data = [[j.strip() for j in i.split(',')] for i in dat if i]
+    
+    for line in data:
+        script = {}
+        for string in line:
+            k,v = [get_bool(get_text(get_int(string.strip())))
+                   for string in string.split(':')]
+            v = [i.strip() for i in v.split(';')]
+            if len(v) == 1: v = v[0]
+            script[k] = v
+        scripts.append(script)
+    return scripts
 
 def load_bgs(bg):
     chdir('maps')
@@ -155,6 +176,7 @@ def load_tiles(bg):
     for line in data:
         x, y, tile = [get_bool(get_text(get_int(string.split(':')[-1].strip())))
                       for string in line]
+        if tile == None: tile = 'empty'
         tiles[(x,y)] = tile
     return tiles
 
@@ -260,11 +282,51 @@ class App:
         self.valid_spaces   = []
         self.doors          = []
         self.surfing        = False
+        self.freeze_frames  = 0
+        self.awaiting_input = False
+        self.frozen         = False
+        
+        self.scripted_scene = {'first_step':False}
         
         self.load_save()
 ##        self.ani_engine.toggle_debug()
 ##        self._debug_()
 ##        self.ani_engine.root.destroy()
+    
+    
+    #######################################################
+    ##############  SCRIPTED INTERACTIONS  ################
+    #######################################################
+    
+    def run_script(self, script):
+        frozen = script.get('frozen',[])
+        if 'player' in frozen: self.frozen = True
+        for npc in self.npcs:
+            if npc.name in frozen: npc.frozen = True
+        
+        mom = [npc for npc in self.npcs if npc.name == 'mom'][0]
+        
+        actions = []
+        actions.extend([('notice',7,2)])
+        actions.extend([('wait',) for i in range(16)])
+        actions.extend([('turn',1,0)])
+        actions.extend([('move',1,0) for i in range(16)])
+        actions.extend([('turn',0,-1)])
+        actions.extend([('move',0,-1) for i in range(8)])
+        actions.extend([('wait',) for i in range(24)])
+        actions.reverse()
+        
+        mom.actions = actions
+        
+        for k,v in script.items():
+            if k in ['frozen','name']: continue
+            print(f"{k}:  {v}")
+        print()
+        
+        
+        if 'player' in frozen: self.frozen = False
+        for npc in self.npcs:
+            if npc.name in frozen: npc.frozen = False
     
     
     #######################################################
@@ -274,9 +336,9 @@ class App:
     def interact_with(self):
         x,y     = self.calc_position()
         xx,yy   = facing_dict[self.player.facing]
-        tile    = self.movables[(x,y)]
+        tile    = self.movables.get((x,y),'empty')
         looking_at      = x+xx,y+yy
-        looking_at_tile = self.movables.get(looking_at,'None')
+        looking_at_tile = self.movables.get(looking_at,'empty')
         
         for npc in self.npcs:
             if npc.calc_position() == looking_at: return npc.interact_with()
@@ -285,17 +347,6 @@ class App:
         
         print(' Looking at:',looking_at, looking_at_tile)
         print(' standing on:', x, y, tile,'\n')
-    
-    def check_for_ledge(self, x, y):
-        direction   = ['down','left','up','right'][self.player.facing]
-        ledge_type  = f"ledge_{direction}"
-        xx,yy       = facing_dict[self.player.facing]
-        looking_at  = self.movables.get((x,y),False)
-        if not looking_at:              return True
-        if looking_at == None:          return True
-        if 'ledge' not in looking_at:   return True
-        if ledge_type == looking_at:    return True
-        return False
     
     def check_for_sign(self, looking_at):
         x,y = looking_at
@@ -333,39 +384,43 @@ class App:
     ################  LOADING BACKGROUNDS  ################
     #######################################################
     
-    def check_for_doors(self):
-        x,y = self.calc_position()
+    def check_for_doors(self, x, y):
         if (x,y) in self.doors:
             data = self.doors[(x,y)]
             self.load_door( data )
     
     def load_door(self, data):
-        self.do_freeze()
-        do_washout  = data.get('washout',1)
-        if do_washout: self.ani_engine.washout(1)
-        self.ani_engine.clear()
+        do_washout = data.get('washout',True)
+        if do_washout:
+            self.do_freeze()
+            self.freeze_frames = 3
+            self.ani_engine.washout(1)
         self.load(data)
         if do_washout: self.ani_engine.washout(2)
-        self.un_freeze()
-        self._debug_() ############################################
     
     def load(self, data):
         self.last_bg        = data['bg']
         self.player.facing  = data['facing']
-        self.subpos         = (data['x']*16,data['y']*16)
+        self.subpos         = data['x']*16,data['y']*16
         self.signs          = load_signs(data['bg'])
         self.doors          = load_doors(data['bg'])
         bgs                 = load_bgs(data['bg'])
         self.movables       = load_tiles(data['bg'])
         song                = load_music(data['bg'])
         npcs                = load_npcs(data['bg'])
+        scripts             = load_scripts(data['bg'])
         
+        
+        self.ani_engine.clear()
         self.load_music( song )
         self.valid_spaces = get_valid_spaces( self.movables )
         self.ani_engine.create_bgs( bgs )
         self.ani_engine.create_animated_tiles( self.movables )
         self.create_npcs( npcs )
         for (x,y),door in self.doors.items(): self.valid_spaces.append((x,y))
+        for script in scripts:
+            if self.scripted_scene[script['name']] == False:
+                self.run_script(script)
     
     
     #######################################################
@@ -373,6 +428,12 @@ class App:
     #######################################################
     
     def key_press(self, key, value):
+        if self.frozen: return False
+        if self.awaiting_input:
+            self.un_freeze()
+            self.un_freeze_npcs()
+            self.awaiting_input = False
+            return False
         if self.freeze: return False
         
         "MENU KEYS"
@@ -406,6 +467,7 @@ class App:
     def _debug_(self):
         def print_(msg,tag='',end='\n'): self.ani_engine.print_debug(msg + end,tag)
         self.ani_engine.clear_debug_text()
+        
 ##        self.show_npc_status(print_)
         
     def show_npc_status(self, print_):
@@ -415,7 +477,6 @@ class App:
             print_("{:^6}    {:^6}    {:^6}    {}".format(
                 npc.freeze, npc.frozen, npc.can_battle, npc.name,
                 ))
-        
         
     def show_screen_objs(self, print_):
         print_('screen_objects:'.upper(),tag='tag1')
@@ -460,6 +521,10 @@ class App:
         self.controller.get_input()
         self.npc_random_update()
         if self.player.turning: self.player.turning -= 1
+        if self.freeze_frames:
+            self.freeze_frames -= 1
+            if not self.freeze_frames: self.un_freeze('')
+##        self._debug_()
     
     def load_music(self, song):
         if self.queue:
@@ -472,6 +537,52 @@ class App:
     #######################################################
     ######################  PLAYER  #######################
     #######################################################
+    
+    def done_moving(self):
+        self.un_freeze()
+        if type(self.player.moving) != bool:
+            "Then player has finished walk animation"
+            "It's a bool when turning"
+            self.player.moving = False
+            x,y = self.calc_position()
+            tile = self.movables.get((x,y),'empty')
+            self.stop_surfing(tile)
+            self.check_for_doors(x,y)
+            for npc in self.npcs: npc.check_battle()
+            self.check_encounter(tile)
+
+    def check_encounter(self, tile):
+        if ('water' in tile) or (tile == 'tall_grass'):
+            if randint(1,15) == 1:
+##                print('pokemon encounter')
+                pass
+
+    def un_freeze(self, msg=''):
+        if self.freeze:
+            if msg: print('player un_freeze',msg)
+            self.freeze = False
+
+    def do_freeze(self, msg=''):
+        if not self.freeze:
+            if msg: print('player freeze',msg)
+            self.freeze = True
+
+    def do_freeze_npcs(self, msg=''):
+        for npc in self.npcs: npc.do_freeze(msg)
+
+    def un_freeze_npcs(self, msg=''):
+        for npc in self.npcs: npc.un_freeze(msg)
+    
+    def start_battle(self, npc):
+        print('\n  start_battle with:',npc.name,'\n')
+        self.awaiting_input = True
+        self.do_freeze()
+        self.do_freeze_npcs()
+        self.end_battle(npc)
+    
+    def end_battle(self, npc):
+        print('\n  end_battle with:',npc.name,'\n')
+        npc.can_battle = False
     
     def do_action(self):
         if not self.actions: return 0
@@ -488,6 +599,8 @@ class App:
             self.subpos = ((args[0]*2) + self.subpos[0], (args[1]*2) + self.subpos[1])
         elif action_type == 'run':
             self.subpos = ((args[0]*4) + self.subpos[0], (args[1]*4) + self.subpos[1])
+        elif action_type == 'swim':
+            self.subpos = (args[0] + self.subpos[0], args[1] + self.subpos[1])
         elif action_type == 'start_surf':
             self.subpos = (args[0] + self.subpos[0], args[1] + self.subpos[1])
         else: pass
@@ -495,68 +608,35 @@ class App:
             self.done_moving()
         return
     
-    def done_moving(self):
-        self.un_freeze()
-        if type(self.player.moving) != bool:
-            "Then player has finished walk animation"
-            "It's a bool when turning"
-            self.player.moving = False
-            self.stop_surfing()
-            self.check_for_doors()
-            for npc in self.npcs: npc.check_battle()
-            
-            tile = self.movables[self.calc_position()]
-            if tile == None: return
-            if ('water' in tile) or (tile == 'tall_grass'):
-                if randint(1,15) == 1: print('pokemon encounter')
-            
-            x,y = facing_dict[self.player.facing]
-            if 'ledge' in tile:
-                self.do_freeze()
-                self.player.moving = x,y
-                self.actions = [('move',x,y) for i in range(8)]
-
-    def un_freeze(self):
-        if self.freeze:
-##            print('player un_freeze')
-            self.freeze = False
-
-    def do_freeze(self):
-        if not self.freeze:
-##            print('player freeze')
-            self.freeze = True
-
-    def do_freeze_npcs(self):
-        for npc in self.npcs: npc.do_freeze()
-
-    def un_freeze_npcs(self):
-        for npc in self.npcs: npc.un_freeze()
-    
-    def start_battle(self, npc):
-        print('\n  start_battle with:',npc.name,'\n')
-        self.do_freeze()
-        self.do_freeze_npcs()
-        self.end_battle(npc)
-    
-    def end_battle(self, npc):
-        print('\n  end_battle with:',npc.name,'\n')
-        self.un_freeze()
-        self.un_freeze_npcs()
-        npc.can_battle = False
-    
     def move_player(self, x, y):
         "Check if player needs to TURN"
         if facing_dict[self.player.facing] != (x,y):
             if self.controller.key_space: self.actions = [('quick_turn',x,y)]
             else: self.actions = [('wait',),('wait',),('turn',x,y)]
         else:
-            if (self.can_move(x,y))  or  (self.walk_thru_walls):
+            px,py = self.calc_position()
+            px,py = px+x,py+y
+            tile = self.movables.get((px,py),'empty')
+            moving = False
+            
+            if (self.can_move(px,py,tile))  or  (self.walk_thru_walls):
+                moving = True
                 self.player.moving = x,y
+                
                 if self.controller.key_space:
                     self.actions = [('run',x,y) for i in range(4)]
-                else: self.actions = [('move',x,y) for i in range(8)]
-            else:
-                "CANT move... Play bump into noise"
+                else:
+                    self.actions = [('move',x,y) for i in range(8)]
+                
+                if 'ledge' in tile:
+                    if self.check_for_ledge(tile):
+                        self.actions = [('move',x,y) for i in range(16)]
+                    else: moving = False
+                if 'water' in tile:
+                    self.actions = [('move',x,y) for i in range(8)]
+            
+            "CANT move... Play bump into noise"
+            if not moving:
                 self.actions = [('wait',) for i in range(3)]
     
     
@@ -565,11 +645,8 @@ class App:
     ##################  PLAYER MOVEMENT  ##################
     #######################################################
     
-    def can_move(self, x, y):
-        X,Y = self.calc_position()
-        x,y = x+X, y+Y
-        if self.check_for_ledge(x,y) == False: return False
-        if self.check_for_surf(x,y)  == False: return False
+    def can_move(self, x, y, tile):
+        if self.check_for_surf(x,y,tile) == False: return False
         npc_positions = self.get_npc_positions()
         valid_spaces = [i for i in self.valid_spaces if i not in npc_positions]
         if (x,y) in valid_spaces:   return True
@@ -578,13 +655,9 @@ class App:
     def calc_position(self):
         return round(self.subpos[0]/16), round(self.subpos[1]/16)
     
-    def check_for_surf(self, x, y):
-        tile = self.movables.get((x,y),'None')
-        if tile == None: return True
-        if 'water' in tile:
-            if self.surfing:    return True
-            else:               return False
-        return True
+    def check_for_surf(self, x, y, tile):
+        if not 'water' in tile: return True
+        return self.surfing
     
     def start_surfing(self, x, y, tile):
         if self.surfing: return False
@@ -595,9 +668,12 @@ class App:
             return True
         return False
     
-    def stop_surfing(self):
+    def check_for_ledge(self, tile):
+        ledge_type  = "ledge_"+['down','left','up','right'][self.player.facing]
+        return ledge_type == tile
+    
+    def stop_surfing(self, tile):
         if not self.surfing: return False
-        tile = self.movables.get(self.calc_position(),'None')
         if 'water' not in tile: self.surfing = False
     
     
@@ -632,18 +708,12 @@ class App:
 ####################################################################
 
 def run(App, queue=None):
-    window = App(queue)
-    
-##    from time import clock, time
-##    start_time = clock()
-##    frames = 0
-    
+    framerate   = 1/45
+    window      = App(queue)
     
     def update_():
         window.update()
         sleep(framerate)
-        return
-    
     
     while True:
         if window.show_error: update_()
@@ -658,13 +728,6 @@ def run(App, queue=None):
                 then the music player will close successfully'''
                 print('run(App) loop closed with unhandled exception:\n\t',e)
                 break
-        
-##        frames += 1
-##        if frames % 45 == 0:
-##            fps = frames / (clock()-start_time)
-##            print(f"{fps:>4.2f} fps")
-##            start_time = clock()
-##            frames = 0
 
 ####################################################################
 ####################################################################

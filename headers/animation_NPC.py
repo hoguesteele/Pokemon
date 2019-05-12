@@ -89,6 +89,9 @@ class NPC_Animation():
         self.sprite_hold    = None
         self.sprite         = None
         self.frame          = 0
+        self.turn_back      = None
+        
+##        self.can_battle = True
         
     def __str__(self):
         return self.name
@@ -104,19 +107,25 @@ class NPC_Animation():
         "Get the NPC to look at you"
         px,py = self.main_app.calc_position()
         xx,yy = self.calc_position()
-        cx,cy = get_tile_in_front(self.facing)
-        self.actions = [('turn_back',cx,cy) for i in range(24)]
+        self.turn_back = get_tile_in_front(self.facing)
         self.turn(px-xx, py-yy)
         
         interaction_type = [i for i in self.interact.keys()][0]
-        if interaction_type == 'talk':
+        
+        if self.can_battle:
+            self.check_battle()
+        
+        elif interaction_type == 'talk':
+            self.main_app.awaiting_input = True
+            self.main_app.do_freeze()
+            self.main_app.do_freeze_npcs()
             print(self.interact['talk'])
             print()
-        if interaction_type == 'action':
+            
+        elif interaction_type == 'action':
             action = getattr(self.main_app, self.interact['action'])
             action(self)
         
-        if self.can_battle: self.check_battle()
         return 0
     
     
@@ -213,20 +222,22 @@ class NPC_Animation():
         if attempt not in self.movements.keys():
             self.facing = facing_rn
 
-    def un_freeze(self):
+    def un_freeze(self, msg=''):
         if self.freeze:
-##            print(self,'un_freeze')
+            if msg: print(self.name,'un_freeze',msg)
             self.freeze = False
+            if self.turn_back:
+                self.turn(*self.turn_back)
+                self.turn_back = None
 
-    def do_freeze(self):
+    def do_freeze(self, msg=''):
         if not self.freeze:
-##            print(self,'freeze')
+            if msg: print(self.name,'freeze',msg)
             self.freeze = True
 
     def random_move(self):
         if self.freeze: return False
         if self.frozen: return False
-        
         x,y = get_random_move()
         
         self.turn(x,y)
@@ -238,17 +249,21 @@ class NPC_Animation():
         if not self.actions: return 0
         self.do_freeze()
         action = self.actions.pop()
+        action_type, args = action[0], action[1:]
         
-        if action[0] == 'move':
+        if action_type == 'turn':
+            self.turn(*args)
+            
+        elif action_type == 'move':
             self.frame += 1
-            x,y        = action[1:]
-            x,y        = x*2,y*2
-            self.sx   += x
-            self.sy   += y
-        
-        if (action[0] == 'turn_back')  and  (not self.actions):
-            x,y = action[1:]
-            self.turn(x,y)
+            self.sx += args[0]*2
+            self.sy += args[1]*2
+            
+        elif action_type == 'notice':
+            self.main_app.ani_engine.draw_pop_up(args[0],args[1],action_type)
+            
+        if action[0] == 'wait':
+            return 0
         
         if len(self.actions) == 0: self.done_moving()
     

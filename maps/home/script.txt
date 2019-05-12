@@ -1,0 +1,1 @@
+name:first_step,talk:'Hi Sweetie!NEWLINE  I think Professor Elm wanted to see you next door.',frozen:player;mom

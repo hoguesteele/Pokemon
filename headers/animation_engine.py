@@ -25,6 +25,7 @@ class TK_Base:
         "MENU"
         self.menubar = Menu(self.root)
         self.menubar.add_command(label='Save',command=self.main_app.save)
+        self.menubar.add_command(label='Load',command=self.main_app.load_save)
         self.root.config(menu=self.menubar)
         
         "CANVAS"
@@ -100,6 +101,19 @@ class Animated_Tile:
         self.c_obj      = None
     def __str__(self):
         return self.tile
+
+####################################################################
+####################################################################
+
+class pop_up:
+    def __init__(self,x,y,name):
+        self.sx         = x*16
+        self.sy         = y*16
+        self.name       = name
+        self.image_hold = None
+        self.c_obj      = None
+    def __str__(self):
+        return self.name
 
 ####################################################################
 ####################################################################
@@ -273,6 +287,24 @@ class Animation_Engine( TK_Base ):
     #######################################################
     ##################  ANIMATED TILES  ###################
     #######################################################
+    
+    def draw_pop_up(self,x,y,name):
+        pop = pop_up(x=7,y=2,name='notice')
+        chdir('image_assets')
+        chdir('animated_tiles')
+        img             = '{}.png'.format(pop.name)
+        pic             = Image.open(img)
+        cw,ch           = pic.size
+        CW,CH           = cw*scale,ch*scale
+        pic             = pic.resize( (CW,CH) )
+        pop.image_hold  = ImageTk.PhotoImage(pic)
+        x,y             = self.get_sprite_pos( pop )
+        y -= 6
+        pop.c_obj       = self.c.create_image(x,y,image=pop.image_hold,
+                                              anchor=NW,tags='pop_up')
+        chdir(main_dir)
+        self.screen_objects.append(pop)
+        self.c.lift(pop.c_obj)
     
     def draw_animated_tiles(self):
         for tile in self.animated_tiles:

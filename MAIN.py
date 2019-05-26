@@ -11,15 +11,7 @@ import pickle
 ####################################################################
 '''#################################################################
 
-I need a way of holding onto the background when going into a building.
-That way loading the main city BG doesnt take forever when exiting.
-There should be a black "curtain" behind the building BG that stays
-    in place to cover the city BG.
 
-Maybe we could accomplish this by having a list of BG's that are
-    currently loaded,
-And when going through a door, we decide which BG's to release and
-    which to keep.
 
 ####################################################################
 ####################################################################
